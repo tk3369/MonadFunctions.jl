@@ -40,6 +40,10 @@ end
     @test right(1) |> fmap(incr) == right(2)
     @test left(1)  |> fmap(incr) == left(1)
 
+    @test left(1)  |> left_value == 1
+    @test right(1) |> right_value == 1
+    @test_throws ArgumentError right_value(left(1))
+    @test_throws ArgumentError left_value(right(1))
 end
 
 @testset "Examples" begin

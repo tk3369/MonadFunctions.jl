@@ -9,22 +9,22 @@ This package contains functions that works with the following types of monads:
 
 ### Maybe
 
-The `fmap` function can map over any Maybe monad (either Some or Nothing).
-If the input is wrapped as a `Some` object, the output is automatically
-wrapped in `Some`.
+The `fmap` function can map over any Maybe monad (either `Just` or `None`).
+If the input is wrapped as a `Just` object, the output is automatically
+wrapped as well.  `NONE` is a singleton constant of `None`.
 
 ```julia
 1 |> fmap(x -> x + 1)         # 2
-some(1) |> fmap(x -> x + 1)   # Some(2)
-nothing |> fmap(x -> x + 1)   # nothing
+just(1) |> fmap(x -> x + 1)   # Just(2)
+NONE    |> fmap(x -> x + 1)   # NONE
 ```
 
-Use `or_else` to switch over to a useful value when `nothing` is encountered.
+Use `or_else` to switch over to a useful value when `NONE` is encountered.
 
 ```julia
 1        |> or_else(2)        # 1
-some(1)  |> or_else(2)        # Some(1)
-nothing  |> or_else(2)        # 2
+just(1)  |> or_else(2)        # Just(1)
+NONE     |> or_else(2)        # 2
 ```
 
 Use `cata` to execute either left function when the value is nothing or 
@@ -32,8 +32,11 @@ the right function when the value is something useful.
 
 ```julia
 1        |> cata(() -> 0, x -> x + 1)     # 2
-nothing  |> cata(() -> 0, x -> x + 1)     # 0
+NONE     |> cata(() -> 0, x -> x + 1)     # 0
 ```
+
+It is possible to extend to your own `Just` and `None` types by implementing
+the `MaybeTypeTrait`.  Note that `Nothing` is given a `IsNone` trait by default.
 
 ### Either
 
