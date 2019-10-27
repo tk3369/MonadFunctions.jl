@@ -42,7 +42,7 @@ the `MaybeTypeTrait`.  Note that `Nothing` is given a `IsNone` trait by default.
 
 The `Either` type is used to capture either a left or right object.
 To create an Either object, simply use the `either` function.  By default,
-an argument of type `Nothing` or any subtypes of `ErrorException` are 
+an argument of type `None`, `Nothing` or any subtypes of `ErrorException` are 
 considered left.  Everything else is considered right.  
 
 ```julia
@@ -52,25 +52,27 @@ Either{:R}(1)
 julia> either(nothing)
 Either{:L}(nothing)
 
-julia> either(DomainError("cannot be negative"))
-Either{:L}(DomainError("cannot be negative", ""))
+julia> either(DomainError(-1, "cannot be negative"))
+Either{:L}(DomainError(-1, "cannot be negative", ""))
 ```
 
 The convenient `is_left` and `is_right` functions can be used to 
-check if the object is left or right.  To unwrap the object, 
-use `something`.
+check if the object is left or right.  To extract value from the
+object, use `left_value` or `right_value`.
 
 ```julia
 julia> is_right(either(1))
 true
 
-julia> is_left(either(DomainError("Bad value")))
+julia> is_left(either(DomainError(-1, "Bad value")))
 true
 
-julia> something(either(1))
+julia> right_value(either(1))
 1
-```
 
+julia> left_value(either(1))
+ERROR: MethodError: no method matching left_value(::Either{:R})
+```
 
 ## More Examples
 
@@ -120,8 +122,6 @@ ERROR: MethodError: no method matching (::getfield(Main, Symbol("##15#16")))(::N
 
 With the help of `fmap` function, we can make it work:
 ```julia
-julia> "abc" |> fmap(match(r"^h.*")) |> fmap(extract) |> fmap(concat(" world"))
-
 julia> "abc" |> fmap(match(r"^h.*")) |> fmap(extract) |> fmap(concat(" world")) == nothing
 true
 ```
@@ -162,18 +162,25 @@ end
 It would be nice if the error just _flows_ to the end.  Without using try-catch statement, we would like to do this:
 
 ```julia
+# anonymous function to make it composable
 run_query(sql) = cursor -> query(cursor, sql)
 
+# error handler
+handle_query_result(err::LeftEither) = @error(left_value(err))
+
+# result set handler
+handle_query_result(rs::DataFrame) = "good job" 
+
+# establish pipeline
 result = fmap(
     url,
     get_connection,
     get_cursor,
     run_query("select * from sometable"),
+    handle_query_result
 )
-
-is_left(result) && @error "Unable to run query due to ex=$ex"
-
 ```
 
-The returned result is be either a left object or a right object.  We can test it by using the `is_left` and `is_right` functions.  To extract the data from the object, we can just use `something`.  
-
+The returned result from `run_query` is either a left object or a right object.
+We can just dispatch based upon `LeftEither` (alias of `Either{:L}` or 
+`RightEither` (alias of `Either{:R}`) types.
