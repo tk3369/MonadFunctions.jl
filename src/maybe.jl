@@ -43,22 +43,6 @@ fmap(f::Function) = x -> fmap(f, x)
 fmap(f::Function...) = x -> foldr(fmap, reverse(f), init = x)
 
 """
-    cata(lf, rf, [x])
-
-Catamorphism - Return `lf()` when x is nothing. Otherwsie, 
-return `rf(x)`.  If `x` is wrapped then the result will be 
-wrapped.  If `x` is not provided then a curried function is
-returned.
-"""
-cata
-cata(lf::Function, rf::Function, x::Some) = something(x) |> rf |> some
-cata(lf::Function, rf::Function, x::Nothing) = lf()
-cata(lf::Function, rf::Function, x) = rf(x)
-
-# curry
-cata(lf::Function, rf::Function) = x -> cata(lf, rf, x)
-
-"""
     or_else([x], y)
 
 If `x` is nothing then return `y`.  Otherwise, return `x`.
@@ -84,22 +68,17 @@ or_else(::Nothing, y) = y
 or_else(y) = x -> or_else(x, y)
 
 """
-    if_nothing(f, [x])
+    cata(lf, rf, [x])
 
-Return `f()` if `x` is nothing.  Otherwise, return `x`.
+Catamorphism - Return `lf()` when x is nothing. Otherwsie, 
+return `rf(x)`.  If `x` is wrapped then the result will be 
+wrapped.  If `x` is not provided then a curried function is
+returned.
 """
-if_nothing
-if_nothing(f::Function, x) = some(x)
-if_nothing(f::Function, x::Nothing) = some(f())
-if_nothing(f::Function) = x -> if_nothing(f, x)
+cata
+cata(lf::Function, rf::Function, x::Some) = something(x) |> rf |> some
+cata(lf::Function, rf::Function, x::Nothing) = lf()
+cata(lf::Function, rf::Function, x) = rf(x)
 
-"""
-    if_something(f, [x])
-
-Return `f(x)` if `x` is not nothing.  Otherwise, return nothing.
-"""
-if_something
-if_something(f::Function, ::Nothing) = nothing
-if_something(f::Function, x::Some) = f(x) |> some
-if_something(f::Function) = x -> if_something(f, x)
-
+# curry
+cata(lf::Function, rf::Function) = x -> cata(lf, rf, x)
