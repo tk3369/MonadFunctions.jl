@@ -6,8 +6,6 @@ end
 const LeftEither  = Either{:L}
 const RightEither = Either{:R}
 
-# constructors
-
 """
     left(x)
 
@@ -29,21 +27,21 @@ Both `Exception`, `Nothing`, and `None` are considered left.
 Everything else is right.
 """
 either(x) = right(x)
-either(x::None) = left(x)
 either(x::Nothing) = left(x)
 either(x::Exception) = left(x)
 
-"
-    left_value(x::Either)
-    right_value(x::Either)
+left_right_value_doc = """
+    left_value(x::Either{:L})
+    right_value(x::Either{:R})
 
 Extract the left (or right) underlying value from the either object `x`.
-"
-left_value(x::LeftEither) = x.value
-right_value(x::RightEither) = x.value
+"""
 
-left_value(x::RightEither) = throw(ArgumentError("Unable to get left value out of a right-object."))
-right_value(x::LeftEither) = throw(ArgumentError("Unable to get left value out of a left-object."))
+"$left_right_value_doc"
+left_value(x::LeftEither) = x.value
+
+"$left_right_value_doc"
+right_value(x::RightEither) = x.value
 
 """
     fmap(f::Function, x::Either)

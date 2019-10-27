@@ -5,5 +5,6 @@ export Either, left, right, either, is_left, is_right, left_value, right_value
 
 include("maybe.jl")
 include("either.jl")
+include("cross.jl")
 
 end # module
