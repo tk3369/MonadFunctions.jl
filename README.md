@@ -1,5 +1,8 @@
 # MonadFunctions
 
+[![Build Status](https://travis-ci.org/tk3369/MonadFunctions.jl.svg?branch=master)](https://travis-ci.org/tk3369/MonadFunctions.jl)
+[![codecov.io](http://codecov.io/github/tk3369/MonadFunctions.jl/coverage.svg?branch=master)](http://codecov.io/github/tk3369/MonadFunctions.jl?branch=master)
+
 This package contains functions that works with the following types of monads:
 
 - Maybe
