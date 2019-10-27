@@ -42,8 +42,8 @@ end
 
     @test left(1)  |> left_value == 1
     @test right(1) |> right_value == 1
-    @test_throws ArgumentError right_value(left(1))
-    @test_throws ArgumentError left_value(right(1))
+    @test_throws MethodError right_value(left(1))
+    @test_throws MethodError left_value(right(1))
 end
 
 @testset "Examples" begin
