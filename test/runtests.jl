@@ -4,27 +4,29 @@ using Test
 @testset "MonadFunctions" begin
 
 # common test functions that handle positive inputs only
-incr(x)   = x > 0 ? x + 1 : nothing
-decr(x)   = x > 0 ? x - 1 : nothing
-double(x) = x > 0 ? 2x    : nothing 
+incr(x)   = x > 0 ? x + 1 : NONE
+decr(x)   = x > 0 ? x - 1 : NONE
+double(x) = x > 0 ? 2x    : NONE 
 
 @testset "Maybe" begin
 
     @test 3       |> fmap(incr) == 4
+    @test Just(3) |> fmap(incr) == Just(4)
+    @test NONE    |> fmap(incr) == NONE
     @test nothing |> fmap(incr) == nothing
-    @test some(3) |> fmap(incr) == some(4)
 
-    @test 0 |> fmap(incr)               == nothing
-    @test 1 |> fmap(decr) |> fmap(decr) == nothing
+    @test 0 |> fmap(incr)               == NONE
+    @test 1 |> fmap(decr) |> fmap(decr) == NONE
 
     @test 1       |> fmap(incr) |> fmap(double) == 4
-    @test some(1) |> fmap(incr) |> fmap(double) == some(4)
+    @test Just(1) |> fmap(incr) |> fmap(double) == Just(4)
 
     @test 1  |> fmap(incr) |> or_else(-1) == 2
     @test -1 |> fmap(incr) |> or_else(-1) == -1
 
     @test cata(()->0, x->x+1, 1)       == 2
-    @test cata(()->0, x->x+1, Some(1)) == some(2)
+    @test cata(()->0, x->x+1, Just(1)) == Just(2)
+    @test cata(()->0, x->x+1, NONE)    == 0
     @test cata(()->0, x->x+1, nothing) == 0
 end
 

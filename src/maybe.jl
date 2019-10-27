@@ -1,12 +1,21 @@
-"""
-    some(x)
+abstract type Maybe end
 
-Wrap `x` as a Some object, unless `x` is nothing or is already wrapped.
-"""
-some
-some(x::Some) = x
-some(x::Nothing) = nothing
-some(x) = Some(x)
+struct Just{T} <: Maybe
+    value::T
+end
+
+struct None <: Maybe end
+
+const NONE = None()
+
+"None trait - define `is_none_type` for custom none type."
+is_none_type(::Any) = false 
+is_none_type(::None) = true
+is_none_type(::Nothing) = true
+
+# constructors
+just(x) = is_none_type(x) ? x : Just(x)
+just(x::Just) = x
 
 """
     fmap(f, [x])
@@ -15,25 +24,10 @@ some(x) = Some(x)
 Map function `f` over value `x`.  If `x` is wrapped then the result
 will be wrapped as well.  If `x` is not provided then a curried 
 function is returned.
-
-```jldoctest
-julia> 10 |> fmap(x -> x + 1) |> fmap(x -> 2x)
-22
-
-julia> 10 |> fmap(x -> x + 1, x -> 2x)
-22
-
-julia> "abc" |> fmap(x -> match(r"^a.*", x), x -> x.match ^ 2) |> or_else("wat")
-"abcabc"
-
-julia> "def" |> fmap(x -> match(r"^a.*", x), x -> x.match ^ 2) |> or_else("wat")
-"wat"
-```
 """
 fmap
-fmap(f::Function, x::Some) = some(f(something(x)))
-fmap(f::Function, x::Nothing) = nothing
-fmap(f::Function, x) = f(x)
+fmap(f::Function, x::Just) = Just(f(x.value))
+fmap(f::Function, x) = is_none_type(x) ? x : f(x)
 
 # curry
 fmap(f::Function) = x -> fmap(f, x)
@@ -45,40 +39,24 @@ fmap(f::Function...) = x -> foldr(fmap, reverse(f), init = x)
 """
     or_else([x], y)
 
-If `x` is nothing then return `y`.  Otherwise, return `x`.
+If `x` is an AbstractNone then return `y`.  Otherwise, return `x`.
 If `x` is not provided, then a curried function is returned.
-
-```jldoctest
-julia> some("hello") |> or_else("world")
-Some("hello")
-
-julia> nothing |> or_else(some("world"))
-Some("world")
-
-julia> 1 |> or_else(2)
-1
-
-julia> nothing |> or_else(2)
-2
-```
 """
 or_else
-or_else(x, y) = x
-or_else(::Nothing, y) = y
+or_else(x, y) = is_none_type(x) ? y : x
 or_else(y) = x -> or_else(x, y)
 
 """
     cata(lf, rf, [x])
 
-Catamorphism - Return `lf()` when x is nothing. Otherwsie, 
+Catamorphism - Return `lf()` when x is an AbstractNone. Otherwsie, 
 return `rf(x)`.  If `x` is wrapped then the result will be 
 wrapped.  If `x` is not provided then a curried function is
 returned.
 """
 cata
-cata(lf::Function, rf::Function, x::Some) = something(x) |> rf |> some
-cata(lf::Function, rf::Function, x::Nothing) = lf()
-cata(lf::Function, rf::Function, x) = rf(x)
+cata(lf::Function, rf::Function, x::Just) = Just(rf(x.value))
+cata(lf::Function, rf::Function, x) = is_none_type(x) ? lf() : rf(x)
 
 # curry
 cata(lf::Function, rf::Function) = x -> cata(lf, rf, x)
