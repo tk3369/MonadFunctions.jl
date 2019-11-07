@@ -6,7 +6,8 @@
 This package contains functions that works with the following types of monads:
 
 - Maybe
-- Either
+- Either / Result
+- List
 
 ## Usage
 
@@ -17,7 +18,7 @@ If the input is wrapped as a `Just` object, the output is automatically
 wrapped as well.  `NONE` is a singleton constant of `None`.
 
 ```julia
-1 |> fmap(x -> x + 1)         # 2
+1       |> fmap(x -> x + 1)   # 2
 just(1) |> fmap(x -> x + 1)   # Just(2)
 NONE    |> fmap(x -> x + 1)   # NONE
 ```
@@ -38,25 +39,28 @@ the right function when the value is something useful.
 NONE     |> cata(() -> 0, x -> x + 1)     # 0
 ```
 
-It is possible to extend to your own `Just` and `None` types by implementing
-the `MaybeTypeTrait`.  Note that `Nothing` is given a `IsNone` trait by default.
+It is possible to extend to your own `Just` and `None` types by implementing the
+`MaybeTypeTrait`. Note that `Nothing` is given a `IsNone` trait by default.
 
 ### Either
 
-The `Either` type is used to capture either a left or right object.
-To create an Either object, simply use the `either` function.  By default,
-an argument of type `None`, `Nothing` or any subtypes of `ErrorException` are 
-considered left.  Everything else is considered right.  
+The `Either` type is used to capture either a left or right object. To create an
+Either object, simply use the `left` or `right` function. Use `left_value`
+or`right_value` to extract the wrapped value. Use `is_left` or `is_right` to
+check if an object is left or right. There is no discrimination which way is
+better.
+
+A special case of `Either` is `Result`, which is used for exception handling.
+Use the `result` constructor to create a `Result` object. By default, any
+subtypes of `ErrorException` are considered left. Everything else is considered
+right.
 
 ```julia
-julia> either(1)
-Either{:R}(1)
+julia> result(1)
+MonadResult_Value(1)
 
-julia> either(nothing)
-Either{:L}(nothing)
-
-julia> either(DomainError(-1, "cannot be negative"))
-Either{:L}(DomainError(-1, "cannot be negative", ""))
+julia> result(ArgumentError("bad input"))
+MonadResult_Error(ArgumentError("bad input"))
 ```
 
 The convenient `is_left` and `is_right` functions can be used to 
@@ -64,24 +68,56 @@ check if the object is left or right.  To extract value from the
 object, use `left_value` or `right_value`.
 
 ```julia
-julia> is_right(either(1))
+julia> is_right(result(1))
 true
 
-julia> is_left(either(DomainError(-1, "Bad value")))
+julia> is_left(result(ArgumentError("bad input")))
 true
 
-julia> right_value(either(1))
+julia> right_value(result(1))
 1
 
-julia> left_value(either(1))
-ERROR: MethodError: no method matching left_value(::Either{:R})
+julia> left_value(result(1))
+ERROR: MethodError: no method matching left_value(::Either{:R,:Result})
+```
+
+### List
+
+A List monad is essentially a 1-dimensional array.  Use the `list` constructor to create a new list monad.  We can `fmap` over all elements, or `flatten` a nested list.
+
+```julia
+julia> m = list(1)
+1-element Array{Int64,1}:
+ 1
+
+julia> v = list([1,2,3])
+3-element Array{Int64,1}:
+ 1
+ 2
+ 3
+
+julia> fmap(x -> 2x, v)
+3-element Array{Int64,1}:
+ 2
+ 4
+ 6
+
+julia> flatten([1, [2,3], [[4],[5]]])
+5-element Array{Int64,1}:
+ 1
+ 2
+ 3
+ 4
+ 5
 ```
 
 ## More Examples
 
-### Maybe
+### Using maybe monad to handle Nothing
 
-Maybe is a monad that either contains something useful or nothing.  How is it useful?  Sometimes certain functions returns `nothing` rather than throwing exception to indicate a negative condition  For example:
+Maybe is a monad that either contains something useful or nothing. How is it
+useful? Sometimes certain functions returns `nothing` rather than throwing
+exception to indicate a negative condition For example:
 
 ```julia
 match(r"^a.*", "hello")     # nothing
@@ -103,15 +139,18 @@ If we have the notion of Maybe, then we can do it in a functional style:
 "hello" |> match(r"^a.*") |> extract |> concat(" world")
 ```
 
-To make that happen, we can do the following to create composable functions that only take single arguments.
+To make that happen, we can do the following to create composable functions that
+only take single arguments.
 
 ```julia
-Base.match(re::Regex) = x::AbstractString -> match(re, x)
+Base.match(re::Regex) = Base.Fix1(match, re)
 extract = rm::RegexMatch -> rm.match
-concat(s::String) = x::AbstractString -> string(x, s)
+concat(s::String) = Base.Fix2(string, s)
 ```
 
-If you don't like type piracy then define your own `match` function or convince the Julia core developers that it is a good addition to the Base library.  And, this would work just fine:
+If you don't like type piracy then define your own `match` function or convince
+the Julia core developers that it is a good addition to the Base library. And,
+this would work just fine:
 ```julia
 julia> "hello" |> match(r"^h.*") |> extract |> concat(" world")
 "hello world"
@@ -142,13 +181,38 @@ process(x) = fmap(
 
 Look ma, it is just a data flow pipeline without any conditional statement.
 
-### Either
+### Using result monad for exception handling
 
-Either is a monad that is popularized by "railway-oriented programming" (ROP).  The idea is that data can either flow to the left or right.  
+Either is a monad that contains data on the left side or right side.
+It is useful to keep track of two scenarios.  For examples:
 
-By convention, we stay on the right track for normal conditions but switch to the left track when we encounter an error condition.  Once we're on the left track, we stay on the it and ignore all computation until the end.  As the error condition was captured when we switch to the left track, we can tell what went wrong when we come out of the computation. As you can see, Either monad is useful in handling errors.
+```julia
+julia> going_to_party = left("I am sick")
+MonadEither_Left(I am sick)
 
-A simple example is to run a database query.  As part of the process, we need to establish a connection, obtain a database cursor, and then run the query.  The trouble is that it may throw an exception at any of the database api calls:
+julia> is_left(going_to_party)
+true
+
+julia> play_badminton = right("this weekend")
+MonadEither_Right(this weekend)
+
+julia> is_right(play_badminton)
+true
+
+julia> right_value(play_badminton)
+"this weekend"
+```
+
+`Result` is a monad that is a special case of `Either`. By convention, we stay
+on the right track for normal conditions but switch to the left track when we
+encounter an error condition. Once we're on the left track, we stay on the it
+and ignore all computation until the end. As the error condition was captured
+when we switch to the left track, we can tell what went wrong when we come out
+of the computation. As you can see, Either monad is useful in handling errors.
+
+A simple example is to run a database query. As part of the process, we need to
+establish a connection, obtain a database cursor, and then run the query. The
+trouble is that it may throw an exception at any of the database api calls:
 
 ```julia
 try
@@ -162,7 +226,8 @@ catch ex
 end
 ```
 
-It would be nice if the error just _flows_ to the end.  Without using try-catch statement, we would like to do this:
+It would be nice if the error just _flows_ to the end. Without using try-catch
+statement, we would like to do this:
 
 ```julia
 # anonymous function to make it composable
@@ -184,6 +249,7 @@ result = fmap(
 )
 ```
 
-The returned result from `run_query` is either a left object or a right object.
-We can just dispatch based upon `LeftEither` (alias of `Either{:L}` or 
-`RightEither` (alias of `Either{:R}`) types.
+The returned result from `run_query` is either a good value or an error. We can
+find out if it's good or bad by calling `is_right` and `is_left` respectively.
+If needed, we can also dispatch based upon `ResultEither` or `ErrorEither`
+types.
