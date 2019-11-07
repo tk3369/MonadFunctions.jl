@@ -38,12 +38,16 @@ end
     @test right(1) |> is_right == true
 
     @test right(1) |> fmap(incr) == right(2)
-    @test left(1)  |> fmap(incr) == left(1)
+    @test left(1)  |> fmap(incr) == left(2)
 
     @test left(1)  |> left_value == 1
     @test right(1) |> right_value == 1
+
     @test_throws MethodError right_value(left(1))
     @test_throws MethodError left_value(right(1))
+
+    @test_throws ErrorException right(left(1))
+    @test_throws ErrorException left(right(1))
 end
 
 @testset "Examples" begin
@@ -64,25 +68,25 @@ end
     url = "localhost:12345"
     sql = "select * from customers"
 
-    @test right(url) |>
+    @test result(url) |>
             fmap(dbconnect1) |>
             fmap(cursor1) |>
-            fmap(query1(sql)) == right(:result)
+            fmap(query1(sql)) == result(:result)
 
-    @test right(url) |>
+    @test result(url) |>
             fmap(dbconnect1) |>
             fmap(cursor1) |>
-            fmap(query2(sql)) == left(err_query)
+            fmap(query2(sql)) == result(err_query)
 
-    @test right(url) |>
+    @test result(url) |>
             fmap(dbconnect1) |>
             fmap(cursor2) |>
-            fmap(query1(sql)) == left(err_cursor)
+            fmap(query1(sql)) == result(err_cursor)
 
-    @test right(url) |>
+    @test result(url) |>
             fmap(dbconnect2) |>
             fmap(cursor1) |>
-            fmap(query1(sql)) == left(err_connection)
+            fmap(query1(sql)) == result(err_connection)
 end
 
 end # top-level testset
