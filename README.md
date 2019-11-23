@@ -3,7 +3,7 @@
 [![Build Status](https://travis-ci.org/tk3369/MonadFunctions.jl.svg?branch=master)](https://travis-ci.org/tk3369/MonadFunctions.jl)
 [![codecov.io](http://codecov.io/github/tk3369/MonadFunctions.jl/coverage.svg?branch=master)](http://codecov.io/github/tk3369/MonadFunctions.jl?branch=master)
 
-This package contains functions that works with the following types of monads:
+This is an experimental package with functions that works with the following types of monads:
 
 - Maybe
 - Either / Result
@@ -16,6 +16,10 @@ This package contains functions that works with the following types of monads:
 The `fmap` function can map over any Maybe monad (either `Just` or `None`).
 If the input is wrapped as a `Just` object, the output is automatically
 wrapped as well.  `NONE` is a singleton constant of `None`.
+
+Unlike other implementations, a `fmap`'ed function can also take ordinary values
+rather than monads.  It would then apply the function as usual and return
+an ordinary result.  So the result is not _elevated_ to a wrapped monad.
 
 ```julia
 1       |> fmap(x -> x + 1)   # 2
