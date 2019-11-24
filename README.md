@@ -140,7 +140,7 @@ end
 
 If we have the notion of Maybe, then we can do it in a functional style:
 ```julia
-"hello" |> match(r"^a.*") |> extract |> concat(" world")
+"hello" |> match(r"^a.*") |> matched |> concat(" world")
 ```
 
 To make that happen, we can do the following to create composable functions that
@@ -148,7 +148,7 @@ only take single arguments.
 
 ```julia
 Base.match(re::Regex) = Base.Fix1(match, re)
-extract = rm::RegexMatch -> rm.match
+matched(rm::RegexMatch) = rm.match
 concat(s::String) = Base.Fix2(string, s)
 ```
 
@@ -156,29 +156,31 @@ If you don't like type piracy then define your own `match` function or convince
 the Julia core developers that it is a good addition to the Base library. And,
 this would work just fine:
 ```julia
-julia> "hello" |> match(r"^h.*") |> extract |> concat(" world")
+julia> "hello" |> match(r"^h.*") |> matched |> concat(" world")
 "hello world"
 ```
 
 That's close but this doesn't work for the nothing condition.
 ```julia
-julia> "abc" |> match(r"^h.*") |> extract |> concat(" world")
-ERROR: MethodError: no method matching (::getfield(Main, Symbol("##15#16")))(::Nothing)
+julia> "abc" |> match(r"^h.*") |> matched |> concat(" world")
+ERROR: MethodError: no method matching matched(::Nothing)
 ```
 
 With the help of `fmap` function, we can make it work:
 ```julia
-julia> "abc" |> fmap(match(r"^h.*")) |> fmap(extract) |> fmap(concat(" world")) == nothing
+julia> "abc" |> fmap(match(r"^h.*")) |> fmap(matched) |> fmap(concat(" world")) === nothing
 true
 ```
 
 This is getting a little long and hard to read, so we just compose the functions:
 ```julia
-process(x) = fmap(
+process = fmap(
     match(r"^h.*"),
-    extract,
+    matched,
     concat(" world")
-)(x)
+)
+
+using Test
 @test process("hello") == "hello world"
 @test process("abc") == nothing
 ```
