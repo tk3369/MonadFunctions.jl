@@ -1,10 +1,10 @@
-abstract type Maybe end
+abstract type Maybe{T} end
 
-struct Just{T} <: Maybe
+struct Just{T} <: Maybe{T}
     value::T
 end
 
-struct None <: Maybe end
+struct None <: Maybe{Nothing} end
 
 const NONE = None()
 
