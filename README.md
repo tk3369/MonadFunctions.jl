@@ -1,6 +1,6 @@
 # MonadFunctions
 
-[![Build Status](https://travis-ci.org/tk3369/MonadFunctions.jl.svg?branch=master)](https://travis-ci.org/tk3369/MonadFunctions.jl)
+[![Build Status](https://github.com/tk3369/MonadFunctions.jl/workflows/CI/badge.svg)](https://github.com/tk3369/MonadFunctions.jl/actions?query=workflow%3ACI)
 [![codecov.io](http://codecov.io/github/tk3369/MonadFunctions.jl/coverage.svg?branch=master)](http://codecov.io/github/tk3369/MonadFunctions.jl?branch=master)
 
 This is an experimental package with functions that works with the following types of monads:
